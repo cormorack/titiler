@@ -4,6 +4,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Tuple, Union
+from urllib.parse import urlparse
 
 import numpy
 from morecantile import tms
@@ -18,6 +19,10 @@ from .utils import get_hash
 from fastapi import Query
 
 from starlette.requests import Request
+################################################################################
+#                       CAVA RELATED SETTINGS
+RCA_BUCKET = 'rca-map-layers.s3-us-west-2.amazonaws.com'
+################################################################################
 
 ################################################################################
 #                       CMAP AND TMS Customization
@@ -77,8 +82,20 @@ class DefaultDependency:
 @dataclass
 class PathParams:
     """Create dataset path from args"""
+    def __init__(self, url: str = Query(..., description="Dataset URL")):
+        self.url = url
 
-    url: str = Query(..., description="Dataset URL")
+    @property
+    def url(self):
+        return self._url
+
+    @url.setter
+    def url(self, u):
+        parsed_url = urlparse(u)
+        if parsed_url.netloc != RCA_BUCKET:
+            raise ValueError(f"{u} is not allowed")
+        else:
+            self._url = u
 
 
 @dataclass
